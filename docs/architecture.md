@@ -25,6 +25,38 @@ Reference reviewed: `3laamobarak/Base-Repository-.Net`, commit `da9fce85b24d1858
 
 The reference's Stripe secret setting is a placeholder, not a confirmed exposed credential. It was not copied. No live credentials are included in this project.
 
+## SOLID design and extension guide
+
+One type per file is a navigation convention. SOLID also requires separating responsibilities and keeping callers independent of implementation details. The foundation applies both:
+
+| Principle | Concrete implementation |
+| --- | --- |
+| Single responsibility | `AccountService`, `AuthSessionService`, `PasswordService` and `EmailVerificationService` handle separate identity use cases. OTP challenge state, OTP hashing, JWT issuance and session revocation have separate components. Each EF entity mapping has an `IEntityTypeConfiguration<T>` file; audit/soft-delete processing is isolated from mappings. |
+| Open/closed | Add a storage backend through `IFileStorage`, an AI provider through `IChatClient`, a scanner through `IUploadScanner`, or email delivery through `IEmailTransport`. Register the replacement in the relevant composition module; file/chat/outbox workflows do not change. |
+| Liskov substitution | SQLite and SQL Server implementations use the same persistence contracts and HTTP regression suite. Repository mutations stage changes and never secretly commit. Chat adapters preserve ordered roles, honor cancellation, and return a reply or an explicit failure; fake providers exercise those contracts. New adapters must preserve these behaviors. |
+| Interface segregation | Controllers depend on focused account, session, password, verification and role contracts instead of one broad auth interface. Chat persistence and context construction have separate contracts. Application code does not receive `DbContext` or `IQueryable`. |
+| Dependency inversion | Application file/chat services depend on ports declared in Application; Infrastructure supplies their adapters. Identity services use abstractions for OTP challenges, hashing, email enqueueing, token issuance and session revocation. Controllers depend on Application contracts; composition selects concrete implementations. |
+
+### Where to make changes
+
+| Change | Location |
+| --- | --- |
+| Request/response shape or use-case interface | One named file in `Application/Auth`, `Application/Files` or `Application/Chat` |
+| Identity account/session/password workflow | Matching service in `Infrastructure/Identity` |
+| Chat orchestration or context policy | `Application/Chat/ChatService.cs` or `ChatContextBuilder.cs` |
+| Entity indexes, relationships or column limits | Matching file in `Infrastructure/Persistence/Configurations` |
+| Audit fields, soft deletion or concurrency stamping | `Infrastructure/Persistence/AuditChangeProcessor.cs` |
+| Database provider registration | `Infrastructure/Persistence/PersistenceServiceCollectionExtensions.cs` |
+| JWT validation parameters or live session check | `ConfigureJwtBearerOptions.cs` or `SessionValidationEvents.cs` |
+| Email retry/lease rules or provider transport | `EmailOutboxProcessor.cs` or an `IEmailTransport` implementation |
+| HTTP security, quotas, Swagger or pipeline ordering | Focused files under `Api/Configuration`, `Api/Security` and `Api/Observability` |
+
+Keep one handwritten top-level type in each matching file, including DTOs and interfaces. Private nested test helpers may remain next to their owning test; EF-generated partial migration/designer files follow EF's conventions. Group files by feature inside each layer. Prefer composition; introduce interfaces at real substitution or dependency boundaries, not for every stateless helper.
+
+Transaction boundaries belong to the use-case implementation. `IOtpChallengeService` stages changes in its caller's serializable transaction; callers persist failed guesses too. Password reset, OTP consumption and session revocation commit atomically. `IEmailQueue` stages encrypted outbox data in that same database transaction. The dispatcher schedules work, the outbox processor manages leases/retries, and the selected transport performs delivery.
+
+Chat loads a tracked conversation through `IChatRepository`, builds bounded context, calls `IChatClient` without holding a database transaction, then commits the message pair through `IUnitOfWork`. The conversation version still detects concurrent sends and deletion. The refactor preserves existing HTTP routes, JSON contracts and database schemas; existing migration sets remain authoritative.
+
 ## Performance decisions
 
 - A modular monolith fits the current foundation: one deployable service, no premature message broker or distributed transaction.

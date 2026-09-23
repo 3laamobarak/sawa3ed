@@ -4,19 +4,20 @@ using Sawa3ed.Domain.Files;
 
 namespace Sawa3ed.Application.Files;
 
-public sealed class FileService(IUnitOfWork unitOfWork, IFileStorage storage) : IFileService
+public sealed class FileService(IUnitOfWork unitOfWork, IFileStorage storage, FileUploadLimits limits) : IFileService
 {
     public async Task<IReadOnlyList<FileResponse>> UploadAsync(string ownerId, IReadOnlyList<UploadFile> files, CancellationToken ct)
     {
-        if (files.Count is < 1 or > 20) throw AppException.Invalid("Upload between 1 and 20 files.");
+        if (files.Count < 1 || files.Count > limits.MaxFiles || files.Sum(x => x.Length) > limits.MaxBatchBytes)
+            throw AppException.Invalid("Upload count or total size exceeds configured limits.");
         var records = new List<StoredFile>();
         var objects = new List<string>();
         try
         {
             foreach (var file in files)
             {
-                var name = SafePath(file.Name, allowFolders: false);
-                var relative = SafePath(file.RelativePath ?? name, allowFolders: true);
+                var name = FilePathPolicy.SafePath(file.Name, allowFolders: false);
+                var relative = FilePathPolicy.SafePath(file.RelativePath ?? name, allowFolders: true);
                 if (!string.Equals(relative.Split('/')[^1], name, StringComparison.Ordinal))
                     throw AppException.Invalid("Each relative path must end with its file name.");
                 var folder = relative.Contains('/') ? relative[..relative.LastIndexOf('/')] : "";
@@ -58,16 +59,6 @@ public sealed class FileService(IUnitOfWork unitOfWork, IFileStorage storage) : 
         repository.Remove(file);
         await unitOfWork.SaveChangesAsync(ct);
         // Keep private bytes for the documented retention window; never expose storage keys.
-    }
-    public static string SafePath(string path, bool allowFolders)
-    {
-        if (string.IsNullOrWhiteSpace(path) || path.Length > (allowFolders ? 500 : 255) ||
-            path.Any(c => char.IsControl(c) || "\\:*?\"<>|".Contains(c)) || path.StartsWith('/'))
-            throw AppException.Invalid("Invalid file name or relative path.");
-        var segments = path.Split('/');
-        if ((!allowFolders && segments.Length != 1) || segments.Any(x => string.IsNullOrWhiteSpace(x) || x is "." or ".." || x.EndsWith('.') || x.EndsWith(' ')))
-            throw AppException.Invalid("Unsafe relative path.");
-        return path;
     }
     private static FileResponse ToResponse(StoredFile x) => new(x.Id, x.OriginalName, x.Folder, x.ContentType, x.Length, x.CreatedAtUtc);
 }

@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.DataProtection;
@@ -13,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Sawa3ed.Application.Auth;
 using Sawa3ed.Application.Chat;
-using Sawa3ed.Application.Common;
 using Sawa3ed.Infrastructure.Email;
 using Sawa3ed.Infrastructure.Identity;
 using Sawa3ed.Infrastructure.Persistence;
@@ -78,7 +76,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         var user = new ApplicationUser { Email = email, UserName = email, DisplayName = "Test User", EmailConfirmed = true, CreatedAtUtc = DateTime.UtcNow };
         Assert.True((await users.CreateAsync(user, Password)).Succeeded);
         Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
-        var tokens = await scope.ServiceProvider.GetRequiredService<IAuthService>().LoginAsync(new(email, Password), default);
+        var tokens = await scope.ServiceProvider.GetRequiredService<IAuthSessionService>().LoginAsync(new(email, Password), default);
         return (user.Id, tokens);
     }
     public static void Authenticate(HttpClient client, TokenResponse tokens) => client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
@@ -98,19 +96,5 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
             Directory.Delete(root, recursive: true);
         }
-    }
-}
-
-public sealed class FakeChat : IChatClient
-{
-    public IReadOnlyList<ChatTurn> LastMessages { get; private set; } = [];
-    public bool Fail { get; set; }
-    public Func<CancellationToken, Task>? BeforeReply { get; set; }
-    public async Task<string> CompleteAsync(IReadOnlyList<ChatTurn> messages, CancellationToken ct)
-    {
-        LastMessages = messages.ToArray();
-        if (Fail) throw new AppException(502, "chat_provider_error", "Provider unavailable.");
-        if (BeforeReply is not null) await BeforeReply(ct);
-        return "لنحل المسألة خطوة بخطوة.";
     }
 }

@@ -8,7 +8,7 @@ using Sawa3ed.Application.Common;
 namespace Sawa3ed.Infrastructure.Storage;
 
 // ClamAV INSTREAM: bytes never leave the configured private scanning service.
-public sealed class UploadScanner(IConfiguration configuration, IHostEnvironment environment)
+public sealed class UploadScanner(IConfiguration configuration, IHostEnvironment environment) : IUploadScanner
 {
     public async Task ScanAsync(string path, CancellationToken ct)
     {

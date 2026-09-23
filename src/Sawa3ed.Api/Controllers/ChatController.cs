@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Sawa3ed.Application.Auth;
 using Sawa3ed.Application.Abstractions;
+using Sawa3ed.Application.Auth;
 using Sawa3ed.Application.Chat;
 
 namespace Sawa3ed.Api.Controllers;

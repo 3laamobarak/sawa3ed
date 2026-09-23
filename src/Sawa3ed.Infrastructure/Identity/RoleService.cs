@@ -10,7 +10,7 @@ using Sawa3ed.Infrastructure.Persistence;
 namespace Sawa3ed.Infrastructure.Identity;
 
 public sealed class RoleService(AppDbContext db, UserManager<ApplicationUser> users, IMemoryCache cache,
-    TimeProvider clock, ILogger<RoleService> logger) : IRoleService
+    ISessionRevoker sessions, ILogger<RoleService> logger) : IRoleService
 {
     public async Task<IReadOnlyList<RoleResponse>> ListAsync(CancellationToken ct) =>
         (await cache.GetOrCreateAsync("identity:roles:v1", async entry =>
@@ -30,11 +30,9 @@ public sealed class RoleService(AppDbContext db, UserManager<ApplicationUser> us
         var hasRole = await users.IsInRoleAsync(user, role);
         if (remove == hasRole)
         {
-            AuthService.Ensure(remove ? await users.RemoveFromRoleAsync(user, role) : await users.AddToRoleAsync(user, role));
-            AuthService.Ensure(await users.UpdateSecurityStampAsync(user));
-            var now = clock.GetUtcNow().UtcDateTime;
-            await db.Sessions.Where(x => x.UserId == userId && x.RevokedAtUtc == null)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedAtUtc, now), ct);
+            IdentityResultGuard.Ensure(remove ? await users.RemoveFromRoleAsync(user, role) : await users.AddToRoleAsync(user, role));
+            IdentityResultGuard.Ensure(await users.UpdateSecurityStampAsync(user));
+            await sessions.RevokeAsync(userId, null, ct);
         }
         await tx.CommitAsync(ct);
         logger.LogInformation("Role change ActorId={ActorId} TargetId={TargetId} Role={Role} Removed={Removed}", actorId, userId, role, remove);

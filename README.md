@@ -122,15 +122,17 @@ This is a tutor integration, **not** an implemented diagnostic engine, grading s
 
 ## Database and layers
 
-```text
-src/Sawa3ed.Domain          Entities and audit/soft-delete contract; no framework dependencies
-src/Sawa3ed.Application     Use-case contracts, DTOs, policies and file orchestration
-src/Sawa3ed.Infrastructure  Identity, EF, repositories, transactions, email, storage, AI adapters
-src/Sawa3ed.Api             HTTP, validation, policies, limits, Swagger and composition
-tests/Sawa3ed.Tests         Unit and HTTP integration tests
-```
+| Project | Responsibility |
+| --- | --- |
+| `Sawa3ed.Domain` | Entities and audit/soft-delete contract; no framework dependencies |
+| `Sawa3ed.Application` | Focused use-case contracts, DTOs, policies, file and chat orchestration |
+| `Sawa3ed.Infrastructure` | Identity implementations, EF persistence, email, storage and AI adapters |
+| `Sawa3ed.Api` | HTTP mapping, validation, policies, limits, Swagger and composition |
+| `Sawa3ed.Tests` | Unit and HTTP integration tests |
 
 Application references Domain. Infrastructure implements Application contracts. API composes them. Domain/Application do not reference EF, Identity or ASP.NET. Identity users live in Infrastructure rather than coupling the educational domain to the Identity framework.
+
+Each handwritten top-level class, interface, record and enum has its own matching file. Authentication is separated into account, session, password and email-verification services and controllers. Chat orchestration depends on `IChatRepository`, `IChatClient`, `IChatContextBuilder` and `IUnitOfWork`; EF queries and provider HTTP calls live in Infrastructure. Email scheduling, outbox processing and transports are separate components. `Program.cs` only composes startup; feature registration and middleware have focused files. See [the SOLID design and extension guide](docs/architecture.md#solid-design-and-extension-guide).
 
 Repository mutations only track changes; `IUnitOfWork.SaveChangesAsync` commits. `ExecuteInTransactionAsync` owns a transaction and rolls back/clears tracking on failure. Reads are untracked by default, paginated, projected and stably ordered. `GetAsync` uses a filtered query rather than `FindAsync`, which could return a tracked deleted entity.
 
@@ -155,7 +157,7 @@ dotnet test Sawa3ed.slnx -c Release --no-build
 dotnet list Sawa3ed.slnx package --vulnerable --include-transitive --no-restore
 ```
 
-Tests cover registration/confirmation, OTP attempt limits/purpose, refresh replay, revocation, privilege boundaries, private files, chat isolation/deletion races, provider failures/timeouts, rate limiting, Swagger, audit/soft delete, transaction rollback, concurrency and architecture dependencies. GitHub Actions runs the HTTP suite against both SQLite and SQL Server and checks both migration snapshots. To run integration tests against a disposable SQL Server locally, set `SAWA3ED_TEST_SQLSERVER` to a connection string whose login may create/drop test databases. The fixture creates isolated `Sawa3edTest_...` databases and deletes only those databases. Dependabot proposes updates; compilation and dependency vulnerability warnings fail the build.
+Tests cover registration/confirmation, OTP attempt limits/purpose, refresh replay, revocation, privilege boundaries, private files, chat context trimming/isolation/deletion races, provider failures/timeouts, email delivery/retry behavior, rate limiting, Swagger, audit/soft delete, transaction rollback, concurrency and architecture dependencies. GitHub Actions runs the HTTP suite against both SQLite and SQL Server and checks both migration snapshots. To run integration tests against a disposable SQL Server locally, set `SAWA3ED_TEST_SQLSERVER` to a connection string whose login may create/drop test databases. The fixture creates isolated `Sawa3edTest_...` databases and deletes only those databases. Dependabot proposes updates; compilation and dependency vulnerability warnings fail the build.
 
 For an optional local SQL Server setup, copy `.env.example` to `.env`, fill strong independent secrets, then run `docker compose up --build`. The SQL Server image needs an x64 Docker host. This compose file is for local development and binds published ports to loopback. It uses SQL Server's SA account for convenience only; production requires a least-privileged application login and a separate migration identity.
 

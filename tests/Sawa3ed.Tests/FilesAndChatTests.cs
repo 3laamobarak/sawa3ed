@@ -22,11 +22,11 @@ public sealed class FilesAndChatTests
     [InlineData("folder//test.pdf")]
     [InlineData("folder/./test.pdf")]
     public void Traversal_and_absolute_paths_are_rejected(string path) =>
-        Assert.Throws<AppException>(() => FileService.SafePath(path, true));
+        Assert.Throws<AppException>(() => FilePathPolicy.SafePath(path, true));
 
     [Fact]
     public void Forged_extension_is_rejected() =>
-        Assert.Throws<AppException>(() => LocalFileStorage.DetectContentType(".png", Encoding.UTF8.GetBytes("<script>alert(1)</script>")));
+        Assert.Throws<AppException>(() => FileSignaturePolicy.DetectContentType(".png", Encoding.UTF8.GetBytes("<script>alert(1)</script>")));
 
     [Fact]
     public async Task Uploads_preserve_virtual_folders_and_enforce_ownership_and_soft_delete()
