@@ -86,6 +86,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         if (disposing && started && !string.IsNullOrWhiteSpace(sqlConnection))
         {
+            // WebApplicationFactory's sync disposal re-enters this override via DisposeAsync.
+            // Claim cleanup before touching the service provider so it runs exactly once.
+            started = false;
             using var scope = Services.CreateScope();
             scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureDeleted();
         }

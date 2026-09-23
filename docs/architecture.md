@@ -23,7 +23,7 @@ Reference reviewed: `3laamobarak/Base-Repository-.Net`, commit `da9fce85b24d1858
 | Raw exception messages exposed through controllers | Central Problem Details and redacted structured logs |
 | IDE/cache metadata and unrelated template features | Clean solution, `.gitignore`, setup scripts, test project, CI and documentation |
 
-A non-empty Stripe secret setting exists in the public reference repository. It was not copied. Its owner should revoke/rotate it if genuine and active, and inspect historical exposure separately. No credentials are included in this project.
+The reference's Stripe secret setting is a placeholder, not a confirmed exposed credential. It was not copied. No live credentials are included in this project.
 
 ## Performance decisions
 
