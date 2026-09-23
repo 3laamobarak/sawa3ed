@@ -1,0 +1,29 @@
+# Build/test output
+**/bin/
+**/obj/
+TestResults/
+coverage/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+# Local secrets, private data and keys
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/secrets.json
+**/App_Data/
+*.db
+*.db-*
+*.sqlite*
+*.pfx
+*.pem
+*.key
+*.eml
+artifacts/

@@ -1,0 +1,13 @@
+**/bin
+**/obj
+.git
+.env
+.env.*
+**/App_Data
+**/*.db*
+**/*.pfx
+**/*.pem
+**/*.key
+TestResults
+artifacts
+**/appsettings.Local.json

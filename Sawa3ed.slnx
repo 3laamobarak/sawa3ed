@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sawa3ed.Domain/Sawa3ed.Domain.csproj" />
+    <Project Path="src/Sawa3ed.Application/Sawa3ed.Application.csproj" />
+    <Project Path="src/Sawa3ed.Infrastructure/Sawa3ed.Infrastructure.csproj" />
+    <Project Path="src/Sawa3ed.Api/Sawa3ed.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sawa3ed.Tests/Sawa3ed.Tests.csproj" />
+  </Folder>
+</Solution>

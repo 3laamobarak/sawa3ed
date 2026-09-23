@@ -1,0 +1,63 @@
+name: Build and test
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore Sawa3ed.slnx
+      - run: dotnet tool restore
+      - run: dotnet build Sawa3ed.slnx --no-restore --configuration Release
+      - run: dotnet test Sawa3ed.slnx --no-build --configuration Release --logger trx --results-directory TestResults
+      - name: Verify both migration snapshots
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/Sawa3ed.Infrastructure --context SqliteAppDbContext --no-build --configuration Release
+          dotnet ef migrations has-pending-model-changes --project src/Sawa3ed.Infrastructure --context SqlServerAppDbContext --no-build --configuration Release
+      - name: Audit dependencies
+        run: dotnet list Sawa3ed.slnx package --vulnerable --include-transitive --no-restore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 7
+  sqlserver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          # Disposable CI service credential only; never used outside this isolated job.
+          MSSQL_SA_PASSWORD: Ci-only-Disposable-Sql-2026!
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Ci-only-Disposable-Sql-2026!' -C -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval=10s --health-timeout=5s --health-retries=20
+    env:
+      SAWA3ED_TEST_SQLSERVER: Server=localhost,1433;User Id=sa;Password=Ci-only-Disposable-Sql-2026!;Encrypt=True;TrustServerCertificate=True
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet test Sawa3ed.slnx --configuration Release --logger trx --results-directory TestResults
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sqlserver-test-results
+          path: TestResults
+          retention-days: 7

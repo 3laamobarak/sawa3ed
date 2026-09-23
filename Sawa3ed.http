@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:5080
+@accessToken = paste-access-token-here
+@refreshToken = paste-refresh-token-here
+
+### Register (OTP is delivered to SMTP or local App_Data/mail in Development)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "student@example.test",
+  "password": "Replace-this-local-password-123!",
+  "displayName": "Student"
+}
+
+### Confirm email
+POST {{baseUrl}}/api/v1/auth/email/confirm
+Content-Type: application/json
+
+{ "email": "student@example.test", "code": "123456" }
+
+### Log in
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.test", "password": "Replace-this-local-password-123!" }
+
+### Current user
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Rotate refresh token (replace the saved token after every successful refresh)
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### Learning assistant (requires Chat configuration)
+POST {{baseUrl}}/api/v1/chat/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "message": "اشرح لي النسب المئوية بمثال" }
+
+### Readiness
+GET {{baseUrl}}/health/ready
