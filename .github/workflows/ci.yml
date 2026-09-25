@@ -27,7 +27,7 @@ jobs:
           dotnet ef migrations has-pending-model-changes --project src/Sawa3ed.Infrastructure --context SqlServerAppDbContext --no-build --configuration Release
       - name: Audit dependencies
         run: dotnet list Sawa3ed.slnx package --vulnerable --include-transitive --no-restore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -55,7 +55,7 @@ jobs:
         with:
           global-json-file: global.json
       - run: dotnet test Sawa3ed.slnx --configuration Release --logger trx --results-directory TestResults
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sqlserver-test-results
